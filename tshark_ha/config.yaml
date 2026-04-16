@@ -1,7 +1,7 @@
 name: "tshark Network Analyzer"
 version: "1.0.0"
 slug: "tshark_ha"
-description: "Live packet capture and network traffic visualization using tshark. Includes a real-time web UI with protocol charts, conversation tracking, and packet inspection."
+description: "Live packet capture and network traffic visualization using tshark"
 url: "https://github.com/VincentFokker/tshark-ha"
 arch:
   - amd64
@@ -11,10 +11,6 @@ startup: application
 boot: manual
 host_network: true
 privileged: true
-ports:
-  8099/tcp: 8099
-ports_description:
-  8099/tcp: "Web UI and API"
 ingress: true
 ingress_port: 8099
 panel_icon: mdi:ethernet
@@ -33,5 +29,3 @@ schema:
   max_packets: int(100,100000)
   snaplen: int(64,65535)
   rotate_seconds: int(0,86400)
-map:
-  - share:rw
