@@ -1,5 +1,5 @@
 name: "tshark Network Analyzer"
-version: "1.0.5"
+version: "1.0.6"
 slug: "tshark_ha"
 description: "Live packet capture and network traffic visualization using tshark"
 url: "https://github.com/VincentFokker/tshark-ha"

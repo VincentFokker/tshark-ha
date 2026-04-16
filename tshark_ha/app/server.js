@@ -15,7 +15,6 @@ const CAPTURE_FILTER = process.env.HA_CAPTURE_FILTER || '';
 const DISPLAY_FILTER = process.env.HA_DISPLAY_FILTER || '';
 const MAX_PACKETS = parseInt(process.env.HA_MAX_PACKETS || '10000', 10);
 const SNAPLEN = parseInt(process.env.HA_SNAPLEN || '65535', 10);
-const BACKEND = process.env.CAPTURE_BACKEND || 'tshark';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let captureProcess = null;
@@ -148,7 +147,7 @@ function buildInfo(proto, layers) {
     }
     if (proto === 'TCP') {
       const tcp = layers.tcp;
-      return `${tcp['tcp.srcport']} → ${tcp['tcp.dstport']} [${tcp['tcp.flags.string'] || ''}]`;
+      return `${tcp['tcp.srcport']} → ${tcp['tcp.dstport']} [${tcp['tcp.flags'] || ''}]`;
     }
     if (proto === 'UDP') {
       const udp = layers.udp;
@@ -197,7 +196,7 @@ function startTshark(opts = {}) {
     '-e', 'ip.proto',
     '-e', 'tcp.srcport',
     '-e', 'tcp.dstport',
-    '-e', 'tcp.flags.string',
+    '-e', 'tcp.flags',
     '-e', 'udp.srcport',
     '-e', 'udp.dstport',
     '-e', 'dns.qry.name',
@@ -238,7 +237,6 @@ function startTshark(opts = {}) {
       } else if (ch === '}') {
         bracketDepth--;
         if (bracketDepth === 0 && inObject) {
-          const jsonStr = buf.slice(buf.lastIndexOf('{', i - (buf.length - i - 1)), i + 1);
           // Find the actual start of this object
           try {
             // Re-extract cleanly
