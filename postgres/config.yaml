@@ -1,0 +1,24 @@
+name: "PostgreSQL"
+version: "1.0.0"
+slug: "postgres"
+description: "PostgreSQL relational database server with persistent storage"
+url: "https://github.com/VincentFokker/tshark-ha"
+arch:
+  - amd64
+  - aarch64
+startup: system
+boot: auto
+ports:
+  5432/tcp: 5432
+ports_description:
+  5432/tcp: "PostgreSQL"
+options:
+  username: "homeassistant"
+  password: "changeme"
+  database: "homeassistant"
+schema:
+  username: str
+  password: str
+  database: str
+map:
+  - data:rw
