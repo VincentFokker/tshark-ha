@@ -17,7 +17,6 @@ ports_description:
   8099/tcp: "Web UI and API"
 ingress: true
 ingress_port: 8099
-ingress_stream: true
 panel_icon: mdi:ethernet
 panel_title: "Network Analyzer"
 options:
