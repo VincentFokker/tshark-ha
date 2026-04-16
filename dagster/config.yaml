@@ -1,0 +1,21 @@
+name: "Dagster"
+version: "1.0.0"
+slug: "dagster"
+description: "Dagster data orchestration platform - schedule and monitor data pipelines from Home Assistant"
+url: "https://github.com/VincentFokker/tshark-ha"
+arch:
+  - amd64
+  - aarch64
+startup: application
+boot: manual
+ingress: true
+ingress_port: 3000
+panel_icon: mdi:pipe
+panel_title: "Dagster"
+options:
+  log_level: "INFO"
+schema:
+  log_level: "list(DEBUG|INFO|WARNING|ERROR)"
+map:
+  - data:rw
+  - share:rw

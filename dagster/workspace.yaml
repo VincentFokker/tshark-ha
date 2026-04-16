@@ -1,0 +1,10 @@
+# Dagster workspace configuration
+# Add your code locations below.
+# Example - load a Python file from the shared folder:
+#
+# load_from:
+#   - python_file:
+#       relative_path: /share/dagster/definitions.py
+#       working_directory: /share/dagster
+
+load_from: []
