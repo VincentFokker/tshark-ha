@@ -14,6 +14,7 @@ RUN apk add --no-cache python3 py3-pip \
     && /opt/dagster/bin/pip install --no-cache-dir \
         dagster \
         dagster-webserver \
+        dagster-postgres \
     && apk del .build-deps
 
 ENV PATH="/opt/dagster/bin:$PATH"

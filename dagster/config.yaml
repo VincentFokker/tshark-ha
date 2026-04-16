@@ -1,5 +1,5 @@
 name: "Dagster"
-version: "1.0.1"
+version: "1.0.2"
 slug: "dagster"
 description: "Dagster data orchestration platform - schedule and monitor data pipelines from Home Assistant"
 url: "https://github.com/VincentFokker/tshark-ha"
@@ -15,8 +15,18 @@ panel_icon: mdi:pipe
 panel_title: "Dagster"
 options:
   log_level: "INFO"
+  postgres_host: "localhost"
+  postgres_port: 5432
+  postgres_username: "homeassistant"
+  postgres_password: "changeme"
+  postgres_database: "homeassistant"
 schema:
   log_level: "list(DEBUG|INFO|WARNING|ERROR)"
+  postgres_host: str
+  postgres_port: int(1,65535)
+  postgres_username: str
+  postgres_password: str
+  postgres_database: str
 map:
   - data:rw
   - share:rw
