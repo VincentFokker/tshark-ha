@@ -24,11 +24,10 @@ RUN npm ci --omit=dev
 # Copy application source
 COPY app/ .
 
-# Copy the startup script
-COPY run.sh /run.sh
-RUN chmod a+x /run.sh
-
-CMD ["/run.sh"]
+# Register as s6 service so with-contenv works inside the s6 supervision tree
+RUN mkdir -p /etc/services.d/tshark
+COPY run.sh /etc/services.d/tshark/run
+RUN chmod a+x /etc/services.d/tshark/run
 
 LABEL \
     io.hass.name="tshark Network Analyzer" \
