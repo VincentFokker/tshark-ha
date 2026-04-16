@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tshark Network Analyzer – Home Assistant</title>
+  <meta name="description" content="Live packet capture and network traffic visualization powered by tshark, running as a Home Assistant add-on." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z" />
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>tshark Analyzer</h1>
+        <span class="brand-sub">Home Assistant Add-on</span>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="control-group">
+        <label for="ctrl-interface">Interface</label>
+        <select id="ctrl-interface">
+          <option value="any">any</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="ctrl-filter">Capture Filter (BPF)</label>
+        <input id="ctrl-filter" type="text" placeholder="e.g. host 192.168.1.1" />
+      </div>
+      <div class="control-group">
+        <label for="ctrl-dfilter">Display Filter</label>
+        <input id="ctrl-dfilter" type="text" placeholder="e.g. http or dns" />
+      </div>
+      <button id="btn-toggle" class="btn-capture btn-start">
+        <span class="btn-icon">▶</span>
+        <span id="btn-label">Start Capture</span>
+      </button>
+    </div>
+
+    <div class="header-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-label">Idle</span>
+    </div>
+  </header>
+
+  <!-- ── Stats Bar ── -->
+  <section class="stats-bar" aria-label="Live statistics">
+    <div class="stat-card" id="stat-packets">
+      <div class="stat-value" id="sv-total">0</div>
+      <div class="stat-label">Total Packets</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="sv-pps">0</div>
+      <div class="stat-label">Packets / sec</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="sv-bps">0</div>
+      <div class="stat-label">Bytes / sec</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="sv-bytes">0</div>
+      <div class="stat-label">Total Bytes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="sv-duration">--:--</div>
+      <div class="stat-label">Session Duration</div>
+    </div>
+  </section>
+
+  <!-- ── Main Grid ── -->
+  <main class="main-grid">
+    <!-- Charts column -->
+    <div class="charts-column">
+      <div class="glass-card chart-card">
+        <div class="card-header">
+          <h2>Protocol Distribution</h2>
+          <span class="badge" id="badge-protocols">0 protocols</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart-protocols"></canvas>
+        </div>
+      </div>
+
+      <div class="glass-card chart-card">
+        <div class="card-header">
+          <h2>Bandwidth Timeline</h2>
+          <span class="badge">60s rolling</span>
+        </div>
+        <div class="chart-wrap chart-wrap-wide">
+          <canvas id="chart-timeline"></canvas>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-header">
+          <h2>Top Conversations</h2>
+          <span class="badge" id="badge-convs">0</span>
+        </div>
+        <div id="conv-list" class="conv-list"></div>
+      </div>
+    </div>
+
+    <!-- Packet table column -->
+    <div class="table-column">
+      <div class="glass-card table-card">
+        <div class="card-header">
+          <h2>Live Packets</h2>
+          <div class="table-controls">
+            <input id="search-input" type="text" placeholder="Search src, dst, info…" class="search-input" />
+            <label class="toggle-label">
+              <input type="checkbox" id="chk-autoscroll" checked />
+              Auto-scroll
+            </label>
+            <button id="btn-clear" class="btn-secondary">Clear</button>
+          </div>
+        </div>
+
+        <div class="table-container" id="table-container">
+          <table class="packet-table">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th style="width:90px">Time</th>
+                <th style="width:150px">Source</th>
+                <th style="width:150px">Destination</th>
+                <th style="width:80px">Protocol</th>
+                <th style="width:70px">Length</th>
+                <th>Info</th>
+              </tr>
+            </thead>
+            <tbody id="packet-tbody"></tbody>
+          </table>
+          <div id="empty-state" class="empty-state">
+            <div class="empty-icon">📡</div>
+            <p>No packets captured yet.</p>
+            <p class="empty-sub">Select an interface and click <strong>Start Capture</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Detail Drawer ── -->
+  <aside id="detail-drawer" class="detail-drawer">
+    <div class="drawer-header">
+      <h3 id="drawer-title">Packet Detail</h3>
+      <button id="btn-close-drawer" class="btn-icon-only" aria-label="Close">✕</button>
+    </div>
+    <div id="drawer-content" class="drawer-content"></div>
+  </aside>
+  <div id="drawer-overlay" class="drawer-overlay"></div>
+
+  <!-- ── Toast container ── -->
+  <div id="toasts" class="toast-container" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
