@@ -1,5 +1,5 @@
 name: "tshark Network Analyzer"
-version: "1.0.3"
+version: "1.0.4"
 slug: "tshark_ha"
 description: "Live packet capture and network traffic visualization using tshark"
 url: "https://github.com/VincentFokker/tshark-ha"
@@ -8,6 +8,7 @@ arch:
   - aarch64
   - armv7
 startup: application
+init: false
 boot: manual
 host_network: true
 privileged:

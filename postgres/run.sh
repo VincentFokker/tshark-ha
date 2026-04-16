@@ -8,6 +8,10 @@ DATABASE=$(bashio::config 'database')
 
 DATA_DIR=/data/postgres
 
+# Create lock file directory required by PostgreSQL
+mkdir -p /run/postgresql
+chown postgres:postgres /run/postgresql
+
 # Ensure data directory is owned by postgres user
 mkdir -p "${DATA_DIR}"
 chown -R postgres:postgres "${DATA_DIR}"
