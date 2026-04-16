@@ -24,10 +24,11 @@ RUN npm ci --omit=dev
 # Copy application source
 COPY app/ .
 
-# Register run script as an s6 service (required by HA base image)
-RUN mkdir -p /etc/services.d/tshark
-COPY run.sh /etc/services.d/tshark/run
-RUN chmod a+x /etc/services.d/tshark/run
+# Copy the startup script
+COPY run.sh /run.sh
+RUN chmod a+x /run.sh
+
+CMD ["/run.sh"]
 
 LABEL \
     io.hass.name="tshark Network Analyzer" \
