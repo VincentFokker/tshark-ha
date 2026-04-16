@@ -2,6 +2,13 @@
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const MAX_TABLE_ROWS = 2000;   // keep DOM lean
+
+// Works correctly both direct (http://addon:8099/) and behind HA ingress
+// (/api/hassio_ingress/<token>/) by using the page's own pathname as base.
+const BASE_URL = (() => {
+  const p = location.pathname;
+  return p.endsWith('/') ? p : p + '/';
+})();
 const PROTO_COLORS = {
   HTTP:    '#06b6d4',
   'HTTP/2':'#0891b2',
@@ -73,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── WebSocket ─────────────────────────────────────────────────────────────────
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws = new WebSocket(`${proto}://${location.host}${BASE_URL}ws`);
 
   ws.addEventListener('open', () => {
     console.log('[ws] connected');
@@ -159,7 +166,7 @@ async function toggleCapture() {
         captureFilter: ctrlFilter.value.trim(),
         displayFilter: ctrlDFilter.value.trim(),
       };
-      const r = await fetch('/api/capture/start', {
+      const r = await fetch(BASE_URL + 'api/capture/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -169,7 +176,7 @@ async function toggleCapture() {
         toast(err.error || 'Failed to start capture', 'error');
       }
     } else {
-      await fetch('/api/capture/stop', { method: 'POST' });
+      await fetch(BASE_URL + 'api/capture/stop', { method: 'POST' });
     }
   } catch (e) {
     toast('Connection error: ' + e.message, 'error');
@@ -545,7 +552,7 @@ function valClass(v) {
 // ── Interface loader ──────────────────────────────────────────────────────────
 async function loadInterfaces() {
   try {
-    const r = await fetch('/api/interfaces');
+    const r = await fetch(BASE_URL + 'api/interfaces');
     const { interfaces } = await r.json();
     ctrlInterface.innerHTML = interfaces
       .map(i => `<option value="${esc(i)}">${esc(i)}</option>`)
