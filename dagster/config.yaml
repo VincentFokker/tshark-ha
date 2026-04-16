@@ -1,5 +1,5 @@
 name: "Dagster"
-version: "1.0.0"
+version: "1.0.1"
 slug: "dagster"
 description: "Dagster data orchestration platform - schedule and monitor data pipelines from Home Assistant"
 url: "https://github.com/VincentFokker/tshark-ha"
@@ -9,6 +9,7 @@ arch:
 startup: application
 boot: manual
 ingress: true
+init: false
 ingress_port: 3000
 panel_icon: mdi:pipe
 panel_title: "Dagster"

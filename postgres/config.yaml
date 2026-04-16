@@ -1,5 +1,5 @@
 name: "PostgreSQL"
-version: "1.0.0"
+version: "1.0.1"
 slug: "postgres"
 description: "PostgreSQL relational database server with persistent storage"
 url: "https://github.com/VincentFokker/tshark-ha"
@@ -7,6 +7,7 @@ arch:
   - amd64
   - aarch64
 startup: system
+init: false
 boot: auto
 ports:
   5432/tcp: 5432
