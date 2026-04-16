@@ -2,7 +2,7 @@ name: "tshark Network Analyzer"
 version: "1.0.0"
 slug: "tshark_ha"
 description: "Live packet capture and network traffic visualization using tshark. Includes a real-time web UI with protocol charts, conversation tracking, and packet inspection."
-url: "https://github.com/VincentFokker/ROD2025"
+url: "https://github.com/VincentFokker/tshark-ha"
 arch:
   - amd64
   - aarch64
@@ -36,4 +36,3 @@ schema:
   rotate_seconds: int(0,86400)
 map:
   - share:rw
-image: "ghcr.io/home-assistant/base-{arch}:latest"
