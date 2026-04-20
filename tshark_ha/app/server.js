@@ -69,9 +69,12 @@ function broadcast(msg) {
 }
 
 // ─── Packet processing ────────────────────────────────────────────────────────
-// tshark EK format: layers is a flat object where values may be arrays or scalars.
+// tshark EK format: field names use underscores (ip_src) in some versions,
+// dots (ip.src) in others. Try both so we work across tshark versions.
 const fld = (layers, name) => {
-  const v = layers[name];
+  const v = layers[name] !== undefined
+    ? layers[name]
+    : layers[name.replace(/\./g, '_')];
   if (v === undefined || v === null) return undefined;
   return Array.isArray(v) ? v[0] : v;
 };
