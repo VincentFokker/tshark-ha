@@ -479,7 +479,7 @@ function closeDrawer() {
 }
 
 function buildDrawerContent(pkt) {
-  const layers = pkt.raw?._source?.layers || {};
+  const layers = pkt.raw || {};
 
   const summaryFields = [
     ['Packet #',    pkt.id],
@@ -502,23 +502,19 @@ function buildDrawerContent(pkt) {
       `).join('')}
     </div>`;
 
-  // Layer breakdown
-  const layerOrder = ['frame','eth','ip','ipv6','tcp','udp','icmp','icmpv6','arp','dns','http','http2','tls','dhcp'];
-  const renderedLayers = new Set();
-  let layersHtml = '';
+  // EK format: layers is a flat key→value object, group by protocol prefix
+  const grouped = {};
+  for (const [key, val] of Object.entries(layers)) {
+    const prefix = key.includes('.') ? key.split('.')[0].toUpperCase() : 'FRAME';
+    if (!grouped[prefix]) grouped[prefix] = {};
+    grouped[prefix][key] = Array.isArray(val) ? val[0] : val;
+  }
 
-  for (const name of layerOrder) {
-    if (layers[name]) {
-      layersHtml += renderLayerSection(name.toUpperCase(), layers[name]);
-      renderedLayers.add(name);
-    }
-  }
-  // Remaining unknown layers
-  for (const [name, data] of Object.entries(layers)) {
-    if (!renderedLayers.has(name)) {
-      layersHtml += renderLayerSection(name.toUpperCase(), data);
-    }
-  }
+  const layerOrder = ['FRAME','ETH','IP','IPV6','TCP','UDP','ICMP','ICMPV6','ARP','DNS','HTTP','HTTP2','TLS','DHCP'];
+  const layersHtml = [
+    ...layerOrder.filter(k => grouped[k]),
+    ...Object.keys(grouped).filter(k => !layerOrder.includes(k)),
+  ].map(k => renderLayerSection(k, grouped[k])).join('');
 
   return summaryHtml + (layersHtml
     ? `<div class="json-section"><div class="json-section-head">Layer Detail</div>${layersHtml}</div>`

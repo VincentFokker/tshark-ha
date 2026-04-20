@@ -69,38 +69,39 @@ function broadcast(msg) {
 }
 
 // ─── Packet processing ────────────────────────────────────────────────────────
+// tshark EK format: layers is a flat object where values may be arrays or scalars.
+const fld = (layers, name) => {
+  const v = layers[name];
+  if (v === undefined || v === null) return undefined;
+  return Array.isArray(v) ? v[0] : v;
+};
+
 function processPacket(pkt) {
   packetIdCounter++;
 
-  const layers = pkt?._source?.layers || {};
-  const frame  = layers.frame || {};
-  const ip     = layers.ip || layers.ipv6 || {};
-  const eth    = layers.eth || {};
-
-  const proto   = guessProtocol(layers);
-  const src     = ip['ip.src'] || ip['ipv6.src'] || eth['eth.src'] || '?';
-  const dst     = ip['ip.dst'] || ip['ipv6.dst'] || eth['eth.dst'] || '?';
-  const length  = parseInt(frame['frame.len'] || '0', 10);
-  const time    = parseFloat(frame['frame.time_epoch'] || (Date.now() / 1000));
-  const info    = buildInfo(proto, layers);
+  const layers = pkt.layers || {};
+  const proto  = guessProtocol(layers);
+  const src    = fld(layers, 'ip.src') || fld(layers, 'ipv6.src') || fld(layers, 'eth.src') || '?';
+  const dst    = fld(layers, 'ip.dst') || fld(layers, 'ipv6.dst') || fld(layers, 'eth.dst') || '?';
+  const length = parseInt(fld(layers, 'frame.len') || '0', 10);
+  const time   = parseFloat(fld(layers, 'frame.time_epoch') || (Date.now() / 1000));
+  const info   = buildInfo(proto, layers);
 
   const packet = {
     id: packetIdCounter,
     time,
-    timeRelative: frame['frame.time_relative'] || '0',
+    timeRelative: fld(layers, 'frame.time_relative') || '0',
     src,
     dst,
     protocol: proto,
     length,
     info,
-    raw: pkt,
+    raw: layers,
   };
 
-  // Push to ring buffer
   packetBuffer.push(packet);
   if (packetBuffer.length > MAX_PACKETS) packetBuffer.shift();
 
-  // Accumulate stats
   stats.totalPackets++;
   stats.totalBytes += length;
   stats.protocols[proto] = (stats.protocols[proto] || 0) + 1;
@@ -116,42 +117,45 @@ function processPacket(pkt) {
 }
 
 function guessProtocol(layers) {
-  if (layers.http)  return 'HTTP';
-  if (layers.http2) return 'HTTP/2';
-  if (layers.tls)   return 'TLS';
-  if (layers.dns)   return 'DNS';
-  if (layers.dhcp)  return 'DHCP';
-  if (layers.icmp)  return 'ICMP';
-  if (layers.icmpv6) return 'ICMPv6';
-  if (layers.tcp)   return 'TCP';
-  if (layers.udp)   return 'UDP';
-  if (layers.arp)   return 'ARP';
-  if (layers.ipv6)  return 'IPv6';
-  if (layers.ip)    return 'IP';
+  if (fld(layers, 'http.request.method') || fld(layers, 'http.response.code')) return 'HTTP';
+  if (fld(layers, 'http2.stream'))         return 'HTTP/2';
+  if (fld(layers, 'tls.handshake.type') !== undefined) return 'TLS';
+  if (fld(layers, 'dns.qry.name') !== undefined || fld(layers, 'dns.resp.name') !== undefined) return 'DNS';
+  if (fld(layers, 'dhcp.option.dhcp') !== undefined)   return 'DHCP';
+  if (fld(layers, 'icmpv6.type') !== undefined)         return 'ICMPv6';
+  if (fld(layers, 'icmp.type')   !== undefined)         return 'ICMP';
+  if (fld(layers, 'arp.opcode')  !== undefined)         return 'ARP';
+  if (fld(layers, 'tcp.srcport') !== undefined)         return 'TCP';
+  if (fld(layers, 'udp.srcport') !== undefined)         return 'UDP';
+  if (fld(layers, 'ipv6.src')    !== undefined)         return 'IPv6';
+  if (fld(layers, 'ip.src')      !== undefined)         return 'IP';
+  if (fld(layers, 'eth.src')     !== undefined)         return 'Ethernet';
   return 'OTHER';
 }
 
 function buildInfo(proto, layers) {
   try {
     if (proto === 'DNS') {
-      const dns = layers.dns;
-      const qry = dns['dns.qry.name'] || '';
-      const resp = dns['dns.resp.name'] || '';
+      const qry  = fld(layers, 'dns.qry.name')  || '';
+      const resp = fld(layers, 'dns.resp.name') || '';
       return qry ? `Query: ${qry}` : resp ? `Response: ${resp}` : 'DNS';
     }
     if (proto === 'HTTP') {
-      const http = layers.http;
-      return http['http.request.method']
-        ? `${http['http.request.method']} ${http['http.request.uri'] || ''}`
-        : `${http['http.response.code'] || ''} ${http['http.response.phrase'] || ''}`;
+      const method = fld(layers, 'http.request.method');
+      return method
+        ? `${method} ${fld(layers, 'http.request.uri') || ''}`
+        : `${fld(layers, 'http.response.code') || ''} ${fld(layers, 'http.response.phrase') || ''}`;
     }
     if (proto === 'TCP') {
-      const tcp = layers.tcp;
-      return `${tcp['tcp.srcport']} → ${tcp['tcp.dstport']} [${tcp['tcp.flags'] || ''}]`;
+      const flags = fld(layers, 'tcp.flags') || '';
+      return `${fld(layers, 'tcp.srcport')} → ${fld(layers, 'tcp.dstport')} [${flags}]`;
     }
     if (proto === 'UDP') {
-      const udp = layers.udp;
-      return `${udp['udp.srcport']} → ${udp['udp.dstport']}`;
+      return `${fld(layers, 'udp.srcport')} → ${fld(layers, 'udp.dstport')}`;
+    }
+    if (proto === 'ICMP' || proto === 'ICMPv6') {
+      const type = fld(layers, 'icmp.type') || fld(layers, 'icmpv6.type') || '';
+      return `Type: ${type}`;
     }
   } catch (_) {}
   return proto;
@@ -174,16 +178,16 @@ setInterval(() => {
 
 // ─── tshark capture ───────────────────────────────────────────────────────────
 function startTshark(opts = {}) {
-  const iface  = opts.interface || INTERFACE;
-  const filter = opts.captureFilter !== undefined ? opts.captureFilter : CAPTURE_FILTER;
-  const snap   = opts.snaplen || SNAPLEN;
+  const iface   = opts.interface || INTERFACE;
+  const filter  = opts.captureFilter !== undefined ? opts.captureFilter : CAPTURE_FILTER;
+  const snap    = opts.snaplen || SNAPLEN;
   const dfilter = opts.displayFilter !== undefined ? opts.displayFilter : DISPLAY_FILTER;
 
   const args = [
     '-i', iface,
     '-s', String(snap),
-    '-l',           // line-buffered
-    '-T', 'json',
+    '-l',
+    '-T', 'ek',          // EK = newline-delimited JSON, one object per line
     '-e', 'frame.time_epoch',
     '-e', 'frame.time_relative',
     '-e', 'frame.len',
@@ -191,29 +195,29 @@ function startTshark(opts = {}) {
     '-e', 'eth.dst',
     '-e', 'ip.src',
     '-e', 'ip.dst',
+    '-e', 'ip.proto',
     '-e', 'ipv6.src',
     '-e', 'ipv6.dst',
-    '-e', 'ip.proto',
     '-e', 'tcp.srcport',
     '-e', 'tcp.dstport',
     '-e', 'tcp.flags',
     '-e', 'udp.srcport',
     '-e', 'udp.dstport',
+    '-e', 'icmp.type',
+    '-e', 'icmpv6.type',
+    '-e', 'arp.opcode',
     '-e', 'dns.qry.name',
     '-e', 'dns.resp.name',
     '-e', 'http.request.method',
     '-e', 'http.request.uri',
     '-e', 'http.response.code',
     '-e', 'http.response.phrase',
+    '-e', 'http2.stream',
     '-e', 'tls.handshake.type',
+    '-e', 'dhcp.option.dhcp',
   ];
 
-  // Layer-based protocol presence markers
-  ['eth','ip','ipv6','tcp','udp','icmp','icmpv6','arp','dns','http','http2','tls','dhcp'].forEach(p => {
-    args.push('-e', `${p}`);
-  });
-
-  if (filter) args.push('-f', filter);
+  if (filter)  args.push('-f', filter);
   if (dfilter) args.push('-Y', dfilter);
 
   console.log(`[tshark] Starting: tshark ${args.join(' ')}`);
@@ -221,41 +225,21 @@ function startTshark(opts = {}) {
   captureProcess = spawn('tshark', args);
   sessionStartTime = Date.now();
 
-  // tshark emits a JSON array. We accumulate and parse bracket-by-bracket.
+  // EK format: two lines per packet — an index line then a packet line.
+  // Index lines start with {"index":...}, packet lines have {"timestamp":...,"layers":{...}}.
+  // We only care about packet lines (those with a "layers" key).
   let buf = '';
-  let bracketDepth = 0;
-  let inObject = false;
-
   captureProcess.stdout.on('data', (chunk) => {
     buf += chunk.toString();
-    // Simple streaming JSON parser: extract complete top-level objects
-    for (let i = 0; i < buf.length; i++) {
-      const ch = buf[i];
-      if (ch === '{') {
-        if (bracketDepth === 0) inObject = true;
-        bracketDepth++;
-      } else if (ch === '}') {
-        bracketDepth--;
-        if (bracketDepth === 0 && inObject) {
-          // Find the actual start of this object
-          try {
-            // Re-extract cleanly
-            const start = findObjectStart(buf, i);
-            if (start !== -1) {
-              const candidate = buf.slice(start, i + 1);
-              const parsed = JSON.parse(candidate);
-              processPacket(parsed);
-              buf = buf.slice(i + 1);
-              i = -1; // restart scan
-              bracketDepth = 0;
-              inObject = false;
-            }
-          } catch (_) {}
-        }
-      }
+    const lines = buf.split('\n');
+    buf = lines.pop(); // retain incomplete trailing line
+    for (const line of lines) {
+      if (!line.trim() || line.includes('"index"')) continue;
+      try {
+        const pkt = JSON.parse(line);
+        if (pkt.layers) processPacket(pkt);
+      } catch (_) {}
     }
-    // Prevent unbounded buffer growth if parsing lags
-    if (buf.length > 2_000_000) buf = buf.slice(-500_000);
   });
 
   captureProcess.stderr.on('data', (d) => console.error('[tshark stderr]', d.toString()));
@@ -266,18 +250,6 @@ function startTshark(opts = {}) {
   });
 
   broadcast({ type: 'captureState', isCapturing: true, sessionStartTime });
-}
-
-function findObjectStart(str, endIdx) {
-  let depth = 0;
-  for (let i = endIdx; i >= 0; i--) {
-    if (str[i] === '}') depth++;
-    else if (str[i] === '{') {
-      depth--;
-      if (depth === 0) return i;
-    }
-  }
-  return -1;
 }
 
 function stopCapture() {
