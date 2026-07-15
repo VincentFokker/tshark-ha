@@ -15,6 +15,6 @@ RUN chmod a+x /etc/services.d/postgres/run
 LABEL \
     io.hass.name="PostgreSQL" \
     io.hass.description="PostgreSQL relational database server" \
-    io.hass.version="1.0.0" \
+    io.hass.version="1.0.3" \
     io.hass.type="addon" \
     io.hass.arch="aarch64|amd64"

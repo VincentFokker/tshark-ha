@@ -12,7 +12,7 @@ boot: auto
 host_network: true
 options:
   username: "homeassistant"
-  password: "changeme"
+  password: "homeassistant"
   database: "homeassistant"
 schema:
   username: str
