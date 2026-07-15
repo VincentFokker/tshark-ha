@@ -1,5 +1,5 @@
 name: "Dagster"
-version: "1.0.2"
+version: "1.0.3"
 slug: "dagster"
 description: "Dagster data orchestration platform - schedule and monitor data pipelines from Home Assistant"
 url: "https://github.com/VincentFokker/tshark-ha"
@@ -15,13 +15,16 @@ panel_icon: mdi:pipe
 panel_title: "Dagster"
 options:
   log_level: "INFO"
-  postgres_host: "localhost"
+  postgres_host: "homeassistant.local"
   postgres_port: 5432
   postgres_username: "homeassistant"
   postgres_password: "changeme"
   postgres_database: "homeassistant"
 schema:
   log_level: "list(DEBUG|INFO|WARNING|ERROR)"
+  # The PostgreSQL add-on runs with host_network, so it's reachable at the
+  # Home Assistant host's own hostname/IP (e.g. "homeassistant.local" or
+  # your instance's LAN address), not via a Supervisor-assigned add-on hostname.
   postgres_host: str
   postgres_port: int(1,65535)
   postgres_username: str
